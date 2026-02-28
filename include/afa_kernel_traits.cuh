@@ -76,11 +76,11 @@ struct AFAForwardTileScheduler {
      * i.e. B_c = 64, fragment [8, 8], each tile has 8 row fragments, 
      * with 4 warps, each warp loads 2 row fragments
      */
-    static constexpr int KV_ldst_row_fragments_per_warp =
+    static constexpr int KV_row_fragments_per_warp =
                                 KV_tile_row_fragments / FwdKernelCfg.n_warps;
 
     
-    static constexpr int KV_ldst_rows_per_warp =
+    static constexpr int KV_rows_per_warp =
                                 FwdKernelCfg.B_c / FwdKernelCfg.n_warps;
 
     // col fragments to load in warp matmuls which execute mma.
@@ -141,53 +141,63 @@ struct AFAForwardKernelTraits {
     }
 
     static constexpr TensorLDSTConfig Q_LDST =
-    // QO_fragments_per_warp = 2, d_head_fragments = 8, Q_mma_load_K_fragments = 8, QO_rows_per_warp = 16
         make_ldst_config({TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
                          {TileScheduler::KV_row_fragments_per_warp, TileScheduler::Q_col_fragments_per_warp_mma},
-                         false /*transposed*/, FwdKernelCfg.B_r, N::QO_rows_per_warp,
+                         false /*transposed*/, FwdKernelCfg.B_r, TileScheduler::QO_rows_per_warp,
                          false /*compute_over_entire_block*/,
-                         FwdKernelCfg.Q_mma_load_K_fragments == 0, N::Q_mma_load_stages);
-    using Q_t = MatrixLDST<Q_LDST, value_t>;
+                         FwdKernelCfg.Q_col_fragments_per_warp_mma == 0,
+                         TileScheduler::Q_mma_load_stages);
+    using QMatrixLDST = MatrixLDST<Q_LDST, value_t>;
 
     static constexpr TensorLDSTConfig K_LDST = make_ldst_config(
-        {N::KV_ldst_fragments_per_warp, N::d_head_fragments},
-        {N::KV_calc_fragments, N::K_mma_load_K_fragments}, false /*transposed*/,
-        FwdKernelCfg.B_c, N::KV_ldst_rows_per_warp, true /*compute_over_entire_block*/,
-        FwdKernelCfg.K_mma_load_K_fragments == 0, N::K_mma_load_stages);
-    using K_t = MatrixLDST<K_LDST, value_t>;
+        {TileScheduler::KV_row_fragments_per_warp, TileScheduler::d_head_fragments},
+        {TileScheduler::KV_row_fragments_per_warp, TileScheduler::K_col_fragments_per_warp_mma},
+        false /*transposed*/,FwdKernelCfg.B_c, TileScheduler::KV_rows_per_warp,
+        true /*compute_over_entire_block*/,
+        FwdKernelCfg.K_col_fragments_per_warp_mma == 0,
+        TileScheduler::K_mma_load_stages);
+    using KMatrixLDST = MatrixLDST<K_LDST, value_t>;
 
     static constexpr TensorLDSTConfig V_LDST = make_ldst_config(
-        {N::KV_ldst_fragments_per_warp, N::d_head_fragments},
-        {N::d_head_fragments, N::V_mma_load_K_fragments}, true /*transposed*/,
-        FwdKernelCfg.B_c, N::KV_ldst_rows_per_warp, true /*compute_over_entire_block*/,
-        FwdKernelCfg.V_mma_load_K_fragments == 0, N::V_mma_load_stages);
-    using V_t = MatrixLDST<V_LDST, value_t>;
-
+        {TileScheduler::KV_row_fragments_per_warp,TileScheduler::d_head_fragments},
+        {TileScheduler::KV_row_fragments_per_warp, TileScheduler::V_col_fragments_per_warp_mma},
+        true /*transposed*/, FwdKernelCfg.B_c, 
+        TileScheduler::KV_rows_per_warp,
+        true /*compute_over_entire_block*/,
+        FwdKernelCfg.V_col_fragments_per_warp_mma == 0,
+        TileScheduler::V_mma_load_stages);
+    using VMatrixLDST = MatrixLDST<V_LDST, value_t>;
+    
     static constexpr TensorLDSTConfig O_LDST =
-        make_ldst_config({N::QO_fragments_per_warp, N::d_head_fragments},
-                         {N::QO_fragments_per_warp, N::d_head_fragments},
-                         false /*transposed*/, FwdKernelCfg.B_r, N::QO_rows_per_warp,
-                         false /*compute_over_entire_block*/, true);
-    using O_accum_t = MatrixLDST<O_LDST, accum_t>;
-    using O_value_t = MatrixLDST<O_LDST, value_t>;
+        make_ldst_config({TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
+                         {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
+                         false /*transposed*/,
+                         FwdKernelCfg.B_r,
+                         TileScheduler::QO_rows_per_warp,
+                         false /*compute_over_entire_block*/, 
+                         true);
+    using OAccumMatrixLDST = MatrixLDST<O_LDST, accum_t>;
+    using OValueMatrixLDST = MatrixLDST<O_LDST, value_t>;
 
     // S/P is kept entirely in the RF during the entire duration of the kernel.
     static constexpr TensorLDSTConfig S_LDST = make_ldst_config(
-        {TileScheduler::QO_fragments_per_warp, TileScheduler::KV_calc_fragments},
-        {TileScheduler::QO_fragments_per_warp, TileScheduler::KV_calc_fragments}, FwdKernelCfg.B_r, false,
+        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
+        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
+        false, FwdKernelCfg.B_r, false,
         0 /* only stored in RF, not smem or gmem */,
         false /*compute_over_entire_block*/);
-    using S_accum_t = MatrixLDST<S_LDST, accum_t>;
-    using P_value_t = MatrixLDST<S_LDST, value_t>;
+    using SAccumMatrixLDST = MatrixLDST<S_LDST, accum_t>;
+    using PValueMatrixLDST = MatrixLDST<S_LDST, value_t>;
 
-    using S_QK_GEMM = GEMM<Q_t, K_t, S_accum_t, N::d_head_fragments,
-                           constexpr_min(N::Q_mma_load_K_fragments,
-                                         N::K_mma_load_K_fragments),
+    using S_QK_GEMM = GEMM<QMatrixLDST, KMatrixLDST, SAccumMatrixLDST,
+                            TileScheduler::d_head_fragments,
+                            constexpr_min(TileScheduler::Q_col_fragments_per_warp_mma,
+                                         TileScheduler::K_col_fragments_per_warp_mma),
                            value_t>;
-    using O_PV_GEMM = GEMM<P_value_t, V_t, O_accum_t, N::KV_calc_fragments,
-                           N::V_mma_load_K_fragments, value_t>;
-
-    using row_statistics_t = RFVector<accum_t, N::QO_fragments_per_warp>;
+    using O_PV_GEMM = GEMM<PValueMatrixLDST, VMatrixLDST, OAccumMatrixLDST,
+                           TileScheduler::KV_row_fragments_per_warp,
+                           TileScheduler::V_col_fragments_per_warp_mma,
+                           value_t>;
 };
 
 } // namespace afa
