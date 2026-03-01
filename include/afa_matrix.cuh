@@ -78,13 +78,16 @@ struct MatrixLDST {
         : lane_id(threadIdx.x % WARP_SIZE) {
         const int warp_rank = threadIdx.x / WARP_SIZE;
 
-        // TODO: ???
+        /*
+         * The begine of the tile block that the warp will operate on in global
+         * memory. Each warp operates on a [ldst.warp_ldst_rows, d_heads] tile.
+         */
         const index_t warp_seq = ldst.warp_ldst_rows * warp_rank;
 
         gmem_seq_stride = _gmem_seq_stride;
         gmem_ptr = gmem_block_ptr + warp_seq * gmem_seq_stride;
 
-        smem_gsm_ptr = _smem_ptr + warp_seq * ldst.smem_cols;
+        smem_gsm_ptr = _smem_ptr + warp_seq * ldst.col_elements;
         smem_srm_ptr =
             ldst.compute_over_entire_block ? _smem_ptr : smem_gsm_ptr;
     }
