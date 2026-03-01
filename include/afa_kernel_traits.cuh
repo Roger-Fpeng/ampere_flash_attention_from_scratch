@@ -7,7 +7,6 @@
 #include "afa_tensor.cuh"
 #include "afa_utils.h"
 
-// static_assert(CUTE_STATIC_V(size(tensor)) % FragmentSize == 0, "Fragment size does not vectorize properly");
 namespace afa {
 
 template <int col_fragments_loaded, int d_head, bool double_buffer>
@@ -123,12 +122,12 @@ struct AFAForwardKernelTraits {
 
     static constexpr LDSTConfig LDSTCfg{FwdKernelCfg.swizzled, FwdKernelCfg.async_copy};
 
-    static constexpr TensorLDSTConfig make_ldst_config(
+    static constexpr MatrixLDSTConfig make_ldst_config(
         TileLayout GSMem_layout, TileLayout RF_layout, bool transposed, int tile_block_size,
         int ldst_rows_per_warp, bool compute_over_entire_block,
         bool load_entire_block_into_rf = true, int mma_load_stages = 1) {
 
-        return TensorLDSTConfig{GSMem_layout,
+        return MatrixLDSTConfig{GSMem_layout,
                                 RF_layout,
                                 LDSTCfg,
                                 transposed,
@@ -140,7 +139,7 @@ struct AFAForwardKernelTraits {
                                 mma_load_stages};
     }
 
-    static constexpr TensorLDSTConfig Q_LDST =
+    static constexpr MatrixLDSTConfig Q_LDST =
         make_ldst_config({TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
                          {TileScheduler::KV_row_fragments_per_warp, TileScheduler::Q_col_fragments_per_warp_mma},
                          false /*transposed*/, FwdKernelCfg.B_r, TileScheduler::QO_rows_per_warp,
@@ -149,7 +148,7 @@ struct AFAForwardKernelTraits {
                          TileScheduler::Q_mma_load_stages);
     using QMatrixLDST = MatrixLDST<Q_LDST, value_t>;
 
-    static constexpr TensorLDSTConfig K_LDST = make_ldst_config(
+    static constexpr MatrixLDSTConfig K_LDST = make_ldst_config(
         {TileScheduler::KV_row_fragments_per_warp, TileScheduler::d_head_fragments},
         {TileScheduler::KV_row_fragments_per_warp, TileScheduler::K_col_fragments_per_warp_mma},
         false /*transposed*/,FwdKernelCfg.B_c, TileScheduler::KV_rows_per_warp,
@@ -158,7 +157,7 @@ struct AFAForwardKernelTraits {
         TileScheduler::K_mma_load_stages);
     using KMatrixLDST = MatrixLDST<K_LDST, value_t>;
 
-    static constexpr TensorLDSTConfig V_LDST = make_ldst_config(
+    static constexpr MatrixLDSTConfig V_LDST = make_ldst_config(
         {TileScheduler::KV_row_fragments_per_warp,TileScheduler::d_head_fragments},
         {TileScheduler::KV_row_fragments_per_warp, TileScheduler::V_col_fragments_per_warp_mma},
         true /*transposed*/, FwdKernelCfg.B_c, 
@@ -168,7 +167,7 @@ struct AFAForwardKernelTraits {
         TileScheduler::V_mma_load_stages);
     using VMatrixLDST = MatrixLDST<V_LDST, value_t>;
     
-    static constexpr TensorLDSTConfig O_LDST =
+    static constexpr MatrixLDSTConfig O_LDST =
         make_ldst_config({TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
                          {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
                          false /*transposed*/,
@@ -180,7 +179,7 @@ struct AFAForwardKernelTraits {
     using OValueMatrixLDST = MatrixLDST<O_LDST, value_t>;
 
     // S/P is kept entirely in the RF during the entire duration of the kernel.
-    static constexpr TensorLDSTConfig S_LDST = make_ldst_config(
+    static constexpr MatrixLDSTConfig S_LDST = make_ldst_config(
         {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
         {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
         false, FwdKernelCfg.B_r, false,
