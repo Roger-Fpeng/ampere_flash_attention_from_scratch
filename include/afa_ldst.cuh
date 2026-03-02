@@ -124,31 +124,27 @@ AFA_DEVICE_CONSTEXPR void copy_block_GSM(value_t *gmem, value_t *smem,
     }
 }
 
-// Loads matrix fragments in smem into registers.
-// Each ldmatrix.x4 instruction loads a (16, 16) chunk, i.e. (2, 2) fragments.
-// For this non-transposed version, the shape of the smem matches rmem, i.e.
-// shape(rmem) = (r_r, r_c) = (s_r / 8, s_c / 8).
-// This will be used to copy Q and K.
 /*
- * copy_warp_fragment_SM2RF: copy a (16, 64) tile from shared memory to 
- * registers for each warp. 
+ * copy_warp_fragment_SM2RF: Load matrix fragments in smem into registers.
+ * In warp level, each ldmatrix.x4 instruction loads a (16, 16) chunk.
  */
 template <MatrixLDSTConfig MatLDSTCfg, typename value_t>
 AFA_DEVICE_CONSTEXPR void copy_warp_fragment_SM2RF(
-        // // QO_fragments_per_warp = 2, d_head_fragments = 8, Q_mma_load_K_fragments = 8, QO_rows_per_warp = 16
-        // make_ldst_config({N::QO_fragments_per_warp, N::d_head_fragments},
-        //     {N::QO_fragments_per_warp, N::Q_mma_load_K_fragments},
-        //     false /*transposed*/, AFAFwdCfg.B_r, N::QO_rows_per_warp,
-        //     false /*compute_over_entire_block*/,
-        //     AFAFwdCfg.Q_mma_load_K_fragments == 0, N::Q_mma_load_stages);
-
-    // 每个 regs 负责 8*8，所以一个warp 加载时需要的 reg 就是 2 * 8 
-    uint32_t (&regs)[MatLDSTCfg.rf_layout.row_fragments][MatLDSTCfg.rf_layout.col_fragments], value_t *smem,
-    const int lane_id, const int col_fragment_offset = 0) {
+    uint32_t (&regs)[MatLDSTCfg.rf_layout.row_fragments][MatLDSTCfg.rf_layout.col_fragments],
+    value_t *smem,
+    const int lane_id,
+    const int col_fragment_offset = 0)
+{
+    // In warp level, each ldmatrix.x4 instruction loads a [2, 2] fragment.
     constexpr int row_fragments_per_iter = 2;
     constexpr int rows_per_iter = ROWS_PER_FRAGMENT * row_fragments_per_iter;
 
-    constexpr int col_fragments = MatLDSTCfg.smem_cols / ELEMS_PER_VEC4_ACCESS;
+    constexpr int col_fragments = MatLDSTCfg.col_elements / ELEMS_PER_VEC4_ACCESS;
+    /* 
+     * col_fragments_per_iter = 
+     *    (warp_size * LDMATRIX_MAT_SIZE) / (rows_per_iter / LDMATRIX_MAT_SIZE)
+     *   = warp_size / rows_per_iter
+     */
     constexpr int col_fragments_per_iter = WARP_SIZE / rows_per_iter;
 
     const int thread_row = lane_id % rows_per_iter;
@@ -163,21 +159,17 @@ AFA_DEVICE_CONSTEXPR void copy_warp_fragment_SM2RF(
                 get_smem_col_fragment<col_fragments, MatLDSTCfg.ldst_config.swizzled>(
                     cur_row, thread_col_fragment + c + col_fragment_offset);
 
-            // 将一个连续 4 * (8 * 8) 的 float16 数据，加载到 4 个寄存器中,对于 64 * 64 的 tile 而言，每次其实就是
-            // 加载 4 * 64 到 RF，每个 RF 有一行，总共四行
-            ldmatrix_x4(&smem[cur_row * MatLDSTCfg.smem_cols +
+            ldmatrix_x4(&smem[cur_row * MatLDSTCfg.col_elements +
                               smem_col_fragment * ELEMS_PER_VEC4_ACCESS],
-                        regs[r][c], regs[r + 1][c], regs[r][c + 1],
+                        regs[r][c],
+                        regs[r + 1][c],
+                        regs[r][c + 1],
                         regs[r + 1][c + 1]);
         }
     }
 }
 
-// Loads matrix fragments in smem into registers.
-// Each ldmatrix.x4 instruction loads a (16, 16) chunk, i.e. (2, 2) fragments.
-// For this transposed version, the shape of the smem matches the transpose of
-// rmem, i.e. shape(rmem) = (r_r, r_c) = (s_c / 8, s_r / 8).
-// This will be used to copy V.
+
 template <MatrixLDSTConfig MatLDSTCfg, typename value_t>
 AFA_DEVICE_CONSTEXPR void copy_warp_fragment_transposed_SM2RF(
     uint32_t (&regs)[MatLDSTCfg.rf_layout.row_fragments][MatLDSTCfg.rf_layout.col_fragments],
@@ -207,16 +199,18 @@ AFA_DEVICE_CONSTEXPR void copy_warp_fragment_transposed_SM2RF(
             ldmatrix_x4_transpose(
                 &smem[cur_row * MatLDSTCfg.smem_cols +
                       smem_col_fragment * ELEMS_PER_VEC4_ACCESS],
-                regs[c][r], regs[c][r + 1], regs[c + 1][r], regs[c + 1][r + 1]);
+                regs[c][r],
+                regs[c][r + 1],
+                regs[c + 1][r],
+                regs[c + 1][r + 1]);
         }
     }
 }
 
-// Copies matrix fragments in rmem to smem.
-// Each iteration of the inner loop copies a (8, 8) tile, i.e. a single
-// fragment. This will be used to copy O.
+
 /*
- * 
+ * Copy registers to shared memory. Each iteration of the inner loop 
+ * copies a (8, 8) tile, i.e. a single fragment. This will be used to copy O.
  */
 template <MatrixLDSTConfig MatLDSTCfg, typename value_t>
 AFA_DEVICE_CONSTEXPR void copy_warp_fragment_RF2SM(
@@ -226,7 +220,7 @@ AFA_DEVICE_CONSTEXPR void copy_warp_fragment_RF2SM(
 {
     constexpr int rows_per_iter = ROWS_PER_FRAGMENT;
     constexpr int col_fragments_per_iter = 1;
-    constexpr int col_fragments = MatLDSTCfg.smem_cols / ELEMS_PER_VEC4_ACCESS;
+    constexpr int col_fragments = MatLDSTCfg.col_elements / ELEMS_PER_VEC4_ACCESS;
 
     constexpr int elems_per_store = 2;
     const int thread_row = lane_id / 4;
@@ -242,7 +236,7 @@ AFA_DEVICE_CONSTEXPR void copy_warp_fragment_RF2SM(
                     cur_row, c);
 
             reinterpret_cast<uint32_t *>(
-                &smem[cur_row * MatLDSTCfg.smem_cols +
+                &smem[cur_row * MatLDSTCfg.col_elements +
                       (smem_col_fragment * ELEMS_PER_VEC4_ACCESS +
                        thread_inner_col)])[0] = regs[r][c];
         }
