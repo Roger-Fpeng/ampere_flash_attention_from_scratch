@@ -76,6 +76,10 @@ struct AFAForwardKernelConfig {
     const int K_col_fragments_per_warp_mma;
     const int V_col_fragments_per_warp_mma;
 
+    int smem_bytes(int elem_size = 2) const {
+        return (B_r + B_c * 2) * d_head * elem_size;
+    }
+
     bool operator<(const AFAForwardKernelConfig &other) const {
         if (dtype != other.dtype) {
             return dtype < other.dtype;
