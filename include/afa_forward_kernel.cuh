@@ -10,22 +10,23 @@
 #include "afa_gemm.cuh"
 #include "afa_ptx_warper.cuh"
 #include "afa_softmax.cuh"
-#include "afa_kernel_configuration.cuh"
+#include "afa_kernel_traits.cuh"
+#include "afa_ldst.cuh"
 
 namespace afa {
 
-template <typename AFAForwardKernelTraits>
+template <typename KernelTraits>
 __global__ void
 afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     using accum_t = float;
     using index_t = int64_t;
-    using TileScheduler = typename AFAForwardKernelTraits::TileScheduler;
+    using TileScheduler = typename KernelTraits::TileScheduler;
 
-    using value_t = typename AFAForwardKernelTraits::value_t;
-    using Q_t = typename AFAForwardKernelTraits::Q_t;
-    using K_t = typename AFAForwardKernelTraits::K_t;
-    using V_t = typename AFAForwardKernelTraits::V_t;
-    constexpr int async = AFAForwardKernelTraits::async_copy;
+    using value_t = typename KernelTraits::value_t;
+    using Q_LDST = typename KernelTraits::Q_LDST;
+    using K_LDST = typename KernelTraits::K_LDST;
+    using V_LDST = typename KernelTraits::V_LDST;
+    constexpr int async = KernelTraits::async_copy;
 
     // We initialize a CTA for each sample, seq tile, and head.
     // CTA 是三维， thread 是其中的单元，每 32 个为一个 warp，也指定一个单元为一个 3 维线程
@@ -40,7 +41,7 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     // We only read/write one block for Q and O.
     // These offsets are the same for the whole thread-block.
     const index_t QO_gmem_block_offset =
-        sample_head_offset + q_seq_block * Kernel::B_r * gmem_seq_stride;
+        sample_head_offset + q_seq_block * KernelTraits::B_r * gmem_seq_stride;
     // We read the entire key sequence.
     const index_t KV_gmem_block_offset = sample_head_offset;
 
@@ -53,28 +54,28 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     extern __shared__ __align__(16) char ch_smem[];
     value_t *smem_Q = reinterpret_cast<value_t *>(ch_smem);
     value_t *smem_O = smem_Q;
-    value_t *smem_K = &smem_Q[Kernel::B_r * Kernel::d_head];
-    value_t *smem_V = &smem_K[Kernel::B_c * Kernel::d_head];
+    value_t *smem_K = &smem_Q[KernelTraits::B_r * KernelTraits::d_head];
+    value_t *smem_V = &smem_K[KernelTraits::B_c * KernelTraits::d_head];
 
     // Pointers to the K&V locations in smem that the warp copies to.
-    Q_t Q(gmem_Q, gmem_seq_stride, smem_Q);
-    K_t K(gmem_K, gmem_seq_stride, smem_K);
-    V_t V(gmem_V, gmem_seq_stride, smem_V);
+    Q_LDST Q(gmem_Q, gmem_seq_stride, smem_Q);
+    K_LDST K(gmem_K, gmem_seq_stride, smem_K);
+    V_LDST V(gmem_V, gmem_seq_stride, smem_V);
     // S is only stored in registers.
-    typename Kernel::S_accum_t S_accum(nullptr, -1, nullptr);
+    typename KernelTraits::S_accum_t S_accum(nullptr, -1, nullptr);
     // P is only stored in registers.
-    typename Kernel::P_value_t P_b16(nullptr, -1, nullptr);
+    typename KernelTraits::P_value_t P_b16(nullptr, -1, nullptr);
     // The accumulator for O is only kept in registers. At the end of the
     // kernel, it is then converted into a 16-bit type and then copied into
     // gmem.
-    typename Kernel::O_accum_t O_accum(nullptr, -1, nullptr);
-    typename Kernel::O_value_t O_b16(gmem_O, gmem_seq_stride, smem_O);
+    typename KernelTraits::OAccumMatrixLDST O_accum(nullptr, -1, nullptr);
+    typename KernelTraits::OValueMatrixLDST O_b16(gmem_O, gmem_seq_stride, smem_O);
 
     // Start the async copy of the Q and K tiles.
     // 这是按照一个 thread cluster 加载的，如何在 warp 内部进行协作的细节
     Q.copy_GM2SM();
     cp_async_commit<async>();
-    if constexpr (Kernel::eager_load_blocks) {
+    if constexpr (KernelTraits::eager_load_blocks) {
         K.copy_GM2SM();
         K.advance_gmem_block();
         cp_async_commit<async>();
@@ -83,8 +84,8 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     O_accum.zero();
 
     // Initialize softmax_scale, m, and l.
-    const accum_t softmax_scale = rsqrt(static_cast<accum_t>(Kernel::d_head)) *
-                                  (Kernel::optimized_softmax ? M_LOG2E : 1.0);
+    const accum_t softmax_scale = rsqrt(static_cast<accum_t>(KernelTraits::d_head)) *
+                                  (KernelTraits::optimized_softmax ? M_LOG2E : 1.0);
     constexpr accum_t neg_inf = -cuda::std::numeric_limits<float>::infinity();
     accum_t m[TileScheduler::QO_fragments_per_warp];
     accum_t l[TileScheduler::QO_fragments_per_warp];
@@ -94,8 +95,8 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
         l[q] = 0.0;
     }
 
-    if constexpr (Q_t::load_entire_block_into_rf) {
-        if constexpr (Kernel::eager_load_blocks) {
+    if constexpr (Q_LDST::load_entire_block_into_rf) {
+        if constexpr (KernelTraits::eager_load_blocks) {
             // We only wait for the Q block to finish loading.
             cp_async_wait<1, async>();
         } else {
@@ -112,7 +113,7 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
 
     // 每个 warp 都逐个 KV 计算，在 query 内部的 tile 并行计算
     for (int j = 0; j < params.n_KV_blocks; ++j) {
-        if constexpr (!Kernel::eager_load_blocks) {
+        if constexpr (!KernelTraits::eager_load_blocks) {
             K.copy_GM2SM();
             K.advance_gmem_block();
             cp_async_commit<async>();
@@ -127,23 +128,23 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
         // warps have done the previous PV matmul.
         __syncthreads();
 
-        if constexpr (Kernel::eager_load_blocks) {
+        if constexpr (KernelTraits::eager_load_blocks) {
             // Start the (async) copy for the V matrix from gmem to smem but
             // do not wait until after the S=QK matmul.
             V.copy_GM2SM();
             V.advance_gmem_block();
             cp_async_commit<async>();
         }
-        if constexpr (K_t::load_entire_block_into_rf) {
+        if constexpr (K_LDST::load_entire_block_into_rf) {
             K.copy_SM2RF();
         }
 
-        matmul<Kernel::S_QK_GEMM>(Q, K, S_accum);
+        matmul<KernelTraits::S_QK_GEMM>(Q, K, S_accum);
         cp_async_wait<0, async>();
         // After this barrier, it is safe to load the next block of K.
         __syncthreads();
 
-        if constexpr (Kernel::eager_load_blocks) {
+        if constexpr (KernelTraits::eager_load_blocks) {
             // Start the async copy for the next K block-tile from gmem to
             // smem, but do not wait for the copy until the next iteration
             // when we need it.
@@ -156,20 +157,20 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
 
         // Online softmax
         accum_t m_next[TileScheduler::QO_fragments_per_warp];
-        if constexpr (!Kernel::optimized_softmax) {
+        if constexpr (!KernelTraits::optimized_softmax) {
             scale_S_accum(S_accum.data(), softmax_scale);
         }
         calc_row_max(S_accum.data(), m_next, m);
-        scale_l_O<Kernel::optimized_softmax>(m_next, m, l, O_accum.data(),
+        scale_l_O<KernelTraits::optimized_softmax>(m_next, m, l, O_accum.data(),
                                              softmax_scale);
-        exponentiate_tensor<Kernel::optimized_softmax>(S_accum.data(), m_next,
+        exponentiate_tensor<KernelTraits::optimized_softmax>(S_accum.data(), m_next,
                                                        softmax_scale);
         update_row_exp_sum(S_accum.data(), l);
 
         // Convert the S accumulator block into P fp16 input block.
         convert_to_16_bit_dtype<value_t>(S_accum.data(), P_b16.data());
 
-        if constexpr (!Kernel::eager_load_blocks) {
+        if constexpr (!KernelTraits::eager_load_blocks) {
             // Load V from gmem to smem and block until it is done.
             V.copy_GM2SM();
             V.advance_gmem_block();
@@ -178,11 +179,11 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
             __syncthreads();
         }
 
-        if constexpr (V_t::load_entire_block_into_rf) {
+        if constexpr (V_LDST::load_entire_block_into_rf) {
             V.copy_SM2RF();
         }
 
-        matmul<typename Kernel::O_PV_GEMM>(P_b16, V, O_accum);
+        matmul<typename KernelTraits::O_PV_GEMM>(P_b16, V, O_accum);
     }
 
     final_softmax_normalization(O_accum.data(), l);

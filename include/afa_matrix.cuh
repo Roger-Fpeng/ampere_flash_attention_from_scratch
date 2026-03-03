@@ -5,9 +5,9 @@
 
 namespace afa {
 
-template <typename value_t, int n_buffers, int row_elements, int col_elements>
+template <typename value_t_, int n_buffers, int row_elements, int col_elements>
 struct RFStorage {
-    using value_t = std::conditional_t<sizeof(value_t) == 4, float, uint32_t>;
+    using value_t = std::conditional_t<sizeof(value_t_) == 4, float, uint32_t>;
 
     static constexpr int regs_per_fragment = sizeof(value_t) / 2;
     static constexpr int rows = row_elements;
@@ -46,7 +46,7 @@ struct MatrixLDST {
         RFStorage<value_t, ldst.mma_load_stages,
                     ldst.rf_layout.row_fragments,
                     ldst.rf_layout.col_fragments>;
-    using GM2SM_op = std::conditional_t<ldst.Common.async_copy,
+    using GM2SM_op = std::conditional_t<ldst.ldst_config.async_copy,
                             GM2SM_async<value_t>, /* cp.async.cg.shared.global.L2::128B */
                             GM2SM<value_t>>;
 

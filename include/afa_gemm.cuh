@@ -107,25 +107,25 @@ AFA_DEVICE_CONSTEXPR void matmul(typename GEMM::AMatrixLDST &A,
     AFA_UNROLL
     for (int k_outer_fragment = 0; k_outer_fragment < GEMM::TotalKTiles;
          k_outer_fragment += GEMM::LoadKTilesPerIter) {
-        if constexpr (!A_t::load_entire_block_into_rf ||
-                      !B_t::load_entire_block_into_rf) {
+        if constexpr (!AMat::load_entire_block_into_rf ||
+                      !BMat::load_entire_block_into_rf) {
             int k_load_fragment =
                     k_outer_fragment +
                     (GEMM::DoubleBuffer ? GEMM::LoadKTilesPerIter : 0);
             if (k_load_fragment < GEMM::TotalKTiles) {
-                if constexpr (!A_t::load_entire_block_into_rf) {
+                if constexpr (!AMat::load_entire_block_into_rf) {
                     A.copy_SM2RF(A_stage_toggle ^ A_stage, k_load_fragment);
                 }
-                if constexpr (!B_t::load_entire_block_into_rf) {
+                if constexpr (!BMat::load_entire_block_into_rf) {
                     B.copy_SM2RF(B_stage_toggle ^ B_stage, k_load_fragment);
                 }
             }
         }
 
         int A_col_offset =
-            A_t::load_entire_block_into_rf ? k_outer_fragment : 0;
+            AMat::load_entire_block_into_rf ? k_outer_fragment : 0;
         int B_col_offset =
-            B_t::load_entire_block_into_rf ? k_outer_fragment : 0;
+            BMat::load_entire_block_into_rf ? k_outer_fragment : 0;
         
         /*
          * template arg <value_t> is necessary to correctly handle the case when 

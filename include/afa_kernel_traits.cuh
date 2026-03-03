@@ -4,7 +4,7 @@
 #include "afa_config.cuh"
 #include "afa_gemm.cuh"
 #include "afa_ldst.cuh"
-#include "afa_tensor.cuh"
+#include "afa_matrix.cuh"
 #include "afa_utils.h"
 
 namespace afa {
@@ -98,7 +98,7 @@ struct AFAForwardTileScheduler {
                     FwdKernelCfg.mma_double_buffer_loads) ? 2 : 1;
 
     static constexpr int V_col_fragments_per_warp_mma =
-        FwdKernelCfg.V_col_fragments_per_warp_mma == 0 ? KV_calc_fragments
+        FwdKernelCfg.V_col_fragments_per_warp_mma == 0 ? KV_tile_row_fragments
                                         : FwdKernelCfg.V_col_fragments_per_warp_mma;
     static constexpr int V_mma_load_stages =
                 (FwdKernelCfg.V_col_fragments_per_warp_mma > 0 &&

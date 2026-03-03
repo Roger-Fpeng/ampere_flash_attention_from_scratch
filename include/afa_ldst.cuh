@@ -118,7 +118,7 @@ AFA_DEVICE_CONSTEXPR void copy_block_GSM(value_t *gmem, value_t *smem,
 
             op()(&gmem[cur_row * gmem_seq_stride +
                        gmem_col_fragment * COLS_PER_FRAGMENT],
-                 &smem[cur_row * MatLDSTCfg.smem_cols +
+                 &smem[cur_row * MatLDSTCfg.col_elements +
                        smem_col_fragment * COLS_PER_FRAGMENT]);
         }
     }
@@ -180,7 +180,7 @@ AFA_DEVICE_CONSTEXPR void copy_warp_fragment_transposed_SM2RF(
     constexpr int row_fragments_per_iter = 2;
     constexpr int rows_per_iter = ROWS_PER_FRAGMENT * row_fragments_per_iter;
 
-    constexpr int col_fragments = MatLDSTCfg.smem_cols / ELEMS_PER_VEC4_ACCESS;
+    constexpr int col_fragments = MatLDSTCfg.col_elements / ELEMS_PER_VEC4_ACCESS;
     constexpr int col_fragments_per_iter = WARP_SIZE / rows_per_iter;
 
     const int thread_row = lane_id % rows_per_iter;
@@ -197,7 +197,7 @@ AFA_DEVICE_CONSTEXPR void copy_warp_fragment_transposed_SM2RF(
                     cur_row, thread_col_fragment + c);
 
             ldmatrix_x4_transpose(
-                &smem[cur_row * MatLDSTCfg.smem_cols +
+                &smem[cur_row * MatLDSTCfg.col_elements +
                       smem_col_fragment * ELEMS_PER_VEC4_ACCESS],
                 regs[c][r],
                 regs[c][r + 1],
