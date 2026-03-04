@@ -94,10 +94,14 @@ struct MatrixLDST {
 
     AFA_DEVICE_CONSTEXPR void zero() { storage.zero(); }
 
-    AFA_DEVICE_CONSTEXPR typename MatStorage::storage_t (&data(
+    AFA_DEVICE_CONSTEXPR typename MatStorage::value_t (&data(
         const int stage = 0))[MatStorage::rows][MatStorage::cols]
     {
         return storage.data(stage);
+    }
+
+    AFA_DEVICE_CONSTEXPR void advance_gmem_block() {
+        gmem_ptr += ldst.block_size * gmem_seq_stride;
     }
 
     AFA_DEVICE_CONSTEXPR void copy_GM2SM() {

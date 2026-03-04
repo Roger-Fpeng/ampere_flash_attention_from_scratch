@@ -23,9 +23,9 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     using TileScheduler = typename KernelTraits::TileScheduler;
 
     using value_t = typename KernelTraits::value_t;
-    using Q_LDST = typename KernelTraits::Q_LDST;
-    using K_LDST = typename KernelTraits::K_LDST;
-    using V_LDST = typename KernelTraits::V_LDST;
+    using QMatLDST = typename KernelTraits::QMatrixLDST;
+    using KMatLDST = typename KernelTraits::KMatrixLDST;
+    using VMatLDST = typename KernelTraits::VMatrixLDST;
     constexpr int async = KernelTraits::async_copy;
 
     // We initialize a CTA for each sample, seq tile, and head.
@@ -58,13 +58,13 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     value_t *smem_V = &smem_K[KernelTraits::B_c * KernelTraits::d_head];
 
     // Pointers to the K&V locations in smem that the warp copies to.
-    Q_LDST Q(gmem_Q, gmem_seq_stride, smem_Q);
-    K_LDST K(gmem_K, gmem_seq_stride, smem_K);
-    V_LDST V(gmem_V, gmem_seq_stride, smem_V);
+    QMatLDST Q(gmem_Q, gmem_seq_stride, smem_Q);
+    KMatLDST K(gmem_K, gmem_seq_stride, smem_K);
+    VMatLDST V(gmem_V, gmem_seq_stride, smem_V);
     // S is only stored in registers.
-    typename KernelTraits::S_accum_t S_accum(nullptr, -1, nullptr);
+    typename KernelTraits::SAccumMatrixLDST S_accum(nullptr, -1, nullptr);
     // P is only stored in registers.
-    typename KernelTraits::P_value_t P_b16(nullptr, -1, nullptr);
+    typename KernelTraits::PValueMatrixLDST P_b16(nullptr, -1, nullptr);
     // The accumulator for O is only kept in registers. At the end of the
     // kernel, it is then converted into a 16-bit type and then copied into
     // gmem.
@@ -87,15 +87,15 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     const accum_t softmax_scale = rsqrt(static_cast<accum_t>(KernelTraits::d_head)) *
                                   (KernelTraits::optimized_softmax ? M_LOG2E : 1.0);
     constexpr accum_t neg_inf = -cuda::std::numeric_limits<float>::infinity();
-    accum_t m[TileScheduler::QO_fragments_per_warp];
-    accum_t l[TileScheduler::QO_fragments_per_warp];
+    accum_t m[TileScheduler::QO_row_fragments_per_warp];
+    accum_t l[TileScheduler::QO_row_fragments_per_warp];
     AFA_UNROLL
-    for (int q = 0; q < TileScheduler::QO_fragments_per_warp; ++q) {
+    for (int q = 0; q < TileScheduler::QO_row_fragments_per_warp; ++q) {
         m[q] = neg_inf;
         l[q] = 0.0;
     }
 
-    if constexpr (Q_LDST::load_entire_block_into_rf) {
+    if constexpr (QMatLDST::load_entire_block_into_rf) {
         if constexpr (KernelTraits::eager_load_blocks) {
             // We only wait for the Q block to finish loading.
             cp_async_wait<1, async>();
@@ -135,7 +135,7 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
             V.advance_gmem_block();
             cp_async_commit<async>();
         }
-        if constexpr (K_LDST::load_entire_block_into_rf) {
+        if constexpr (KMatLDST::load_entire_block_into_rf) {
             K.copy_SM2RF();
         }
 
@@ -156,7 +156,7 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
         }
 
         // Online softmax
-        accum_t m_next[TileScheduler::QO_fragments_per_warp];
+        accum_t m_next[TileScheduler::QO_row_fragments_per_warp];
         if constexpr (!KernelTraits::optimized_softmax) {
             scale_S_accum(S_accum.data(), softmax_scale);
         }
@@ -179,7 +179,7 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
             __syncthreads();
         }
 
-        if constexpr (V_LDST::load_entire_block_into_rf) {
+        if constexpr (VMatLDST::load_entire_block_into_rf) {
             V.copy_SM2RF();
         }
 

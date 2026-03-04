@@ -51,7 +51,7 @@ ext_modules = [
     CUDAExtension(
         name="afa_flash_attention_kernels",
         sources=[
-            "afa_flash_attention.cu",
+            "ampere_flash_attention.cu",
         ],
         extra_compile_args={
             "cxx": ["-O3", "-fdiagnostics-color=always"],
