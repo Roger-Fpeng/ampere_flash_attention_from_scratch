@@ -9,7 +9,9 @@ template <typename value_t_, int n_buffers, int row_elements, int col_elements>
 struct RFStorage {
     using value_t = std::conditional_t<sizeof(value_t_) == 4, float, uint32_t>;
 
-    static constexpr int regs_per_fragment = sizeof(value_t) / 2;
+    // For 16-bit types (half/bf16): ldmatrix uses 1 uint32_t per fragment position.
+    // For float (accumulator): 2 floats per N-fragment (N_REGS_PER_F32_ACCUM_FRAGMENT).
+    static constexpr int regs_per_fragment = (sizeof(value_t_) == 4) ? 2 : 1;
     static constexpr int rows = row_elements;
     static constexpr int cols = col_elements * regs_per_fragment;
 

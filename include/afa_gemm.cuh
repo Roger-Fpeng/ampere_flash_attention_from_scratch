@@ -86,6 +86,7 @@ AFA_DEVICE_CONSTEXPR void matmul(typename GEMM::AMatrixLDST &A,
                                 typename GEMM::CMatrixLDST &C) {
     using AMat = typename GEMM::AMatrixLDST;
     using BMat = typename GEMM::BMatrixLDST;
+    using CMat = typename GEMM::CMatrixLDST;
     using value_t = typename GEMM::value_t;
 
     /*
@@ -128,13 +129,17 @@ AFA_DEVICE_CONSTEXPR void matmul(typename GEMM::AMatrixLDST &A,
             BMat::load_entire_block_into_rf ? k_outer_fragment : 0;
         
         /*
-         * template arg <value_t> is necessary to correctly handle the case when 
-         * A and B are in fp16/bf16. 
+         * Explicit template args: M/N from C (accumulator); A_col/B_col from A/B.
+         * C has cols = N_fragments * N_REGS_PER_F32_ACCUM_FRAGMENT.
          */
-        // Perform tile-wise outer products.
-        warp_fragment_mma_f32_accum<value_t>(A.data(A_stage), B.data(B_stage),
-                                             C.data(), A_col_offset,
-                                             B_col_offset);
+        warp_fragment_mma_f32_accum<
+            value_t,
+            CMat::MatStorage::rows,
+            CMat::MatStorage::cols / N_REGS_PER_F32_ACCUM_FRAGMENT,
+            AMat::MatStorage::cols,
+            BMat::MatStorage::cols>(
+            A.data(A_stage), B.data(B_stage), C.data(), A_col_offset,
+            B_col_offset);
 
         A_stage ^= A_stage_toggle;
         B_stage ^= B_stage_toggle;
