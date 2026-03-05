@@ -141,7 +141,7 @@ struct AFAForwardKernelTraits {
 
     static constexpr MatrixLDSTConfig Q_LDST =
         make_ldst_config({TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
-                         {TileScheduler::KV_row_fragments_per_warp, TileScheduler::Q_col_fragments_per_warp_mma},
+                         {TileScheduler::QO_row_fragments_per_warp, TileScheduler::Q_col_fragments_per_warp_mma},
                          false /*transposed*/, FwdKernelCfg.B_r, TileScheduler::QO_rows_per_warp,
                          false /*compute_over_entire_block*/,
                          FwdKernelCfg.Q_col_fragments_per_warp_mma == 0,
@@ -181,13 +181,21 @@ struct AFAForwardKernelTraits {
 
     // S/P is kept entirely in the RF during the entire duration of the kernel.
     static constexpr MatrixLDSTConfig S_LDST = make_ldst_config(
-        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
-        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
+        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::K_col_fragments_per_warp_mma},
+        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::K_col_fragments_per_warp_mma},
         false, FwdKernelCfg.B_r, false,
         0 /* only stored in RF, not smem or gmem */,
         false /*compute_over_entire_block*/);
     using SAccumMatrixLDST = MatrixLDST<S_LDST, accum_t>;
     using PValueMatrixLDST = MatrixLDST<S_LDST, value_t>;
+
+    //     using S_QK_GEMM = GEMM<Q_t, K_t, S_accum_t, N::d_head_fragments,
+    //                        constexpr_min(N::Q_mma_load_K_fragments,
+    //                                      N::K_mma_load_K_fragments),
+    //                        value_t>;
+    // using O_PV_GEMM = GEMM<P_value_t, V_t, O_accum_t, N::KV_calc_fragments,
+    //                        N::V_mma_load_K_fragments, value_t>;
+
 
     using S_QK_GEMM = GEMM<QMatrixLDST, KMatrixLDST, SAccumMatrixLDST,
                             TileScheduler::d_head_fragments,
