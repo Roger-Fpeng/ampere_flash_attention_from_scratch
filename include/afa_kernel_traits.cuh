@@ -150,7 +150,8 @@ struct AFAForwardKernelTraits {
 
     static constexpr MatrixLDSTConfig K_LDST = make_ldst_config(
         {TileScheduler::KV_row_fragments_per_warp, TileScheduler::d_head_fragments},
-        {TileScheduler::KV_row_fragments_per_warp, TileScheduler::K_col_fragments_per_warp_mma},
+        /* K is transposed, so the col fragments are the first dimension */
+        {TileScheduler::K_col_fragments_per_warp_mma, TileScheduler::KV_row_fragments_per_warp},
         false /*transposed*/,FwdKernelCfg.B_c, TileScheduler::KV_rows_per_warp,
         true /*compute_over_entire_block*/,
         FwdKernelCfg.K_col_fragments_per_warp_mma == 0,
@@ -159,7 +160,7 @@ struct AFAForwardKernelTraits {
 
     static constexpr MatrixLDSTConfig V_LDST = make_ldst_config(
         {TileScheduler::KV_row_fragments_per_warp,TileScheduler::d_head_fragments},
-        {TileScheduler::KV_row_fragments_per_warp, TileScheduler::V_col_fragments_per_warp_mma},
+        {TileScheduler::d_head_fragments, TileScheduler::V_col_fragments_per_warp_mma},
         true /*transposed*/, FwdKernelCfg.B_c, 
         TileScheduler::KV_rows_per_warp,
         true /*compute_over_entire_block*/,
