@@ -5,21 +5,22 @@
 
 namespace afa {
 
-template <typename value_t_, int n_buffers, int row_elements, int col_elements>
+template <typename value_t, int n_buffers, int row_elements, int col_elements>
 struct RFStorage {
-    using value_t = std::conditional_t<sizeof(value_t_) == 4, float, uint32_t>;
+    // use uint32 for two FP16 value
+    using storage_t = std::conditional_t<sizeof(value_t) == 4, float, uint32_t>;
 
-    // For 16-bit types (half/bf16): ldmatrix uses 1 uint32_t per fragment position.
+    // For 16-bit types (half/bf16): ldmatrix uses 1 uint32_t for two value
     // For float (accumulator): 2 floats per N-fragment (N_REGS_PER_F32_ACCUM_FRAGMENT).
-    static constexpr int regs_per_fragment = (sizeof(value_t_) == 4) ? 2 : 1;
+    static constexpr int regs_per_value = sizeof(value_t) / 2;
     static constexpr int rows = row_elements;
-    static constexpr int cols = col_elements * regs_per_fragment;
+    static constexpr int cols = col_elements * regs_per_value;
 
     // In afa, n_buffers is 1 or 2 (double buffer mode).
-    value_t regs[n_buffers][rows][cols];
+    storage_t regs[n_buffers][rows][cols];
 
-    AFA_DEVICE_CONSTEXPR value_t (&data(const int stage = 0))[rows][cols] {
-        return reinterpret_cast<value_t(&)[rows][cols]>(regs[stage]);
+    AFA_DEVICE_CONSTEXPR storage_t (&data(const int stage = 0))[rows][cols] {
+        return reinterpret_cast<storage_t(&)[rows][cols]>(regs[stage]);
     }
 
     AFA_DEVICE_CONSTEXPR void zero() {
@@ -96,7 +97,7 @@ struct MatrixLDST {
 
     AFA_DEVICE_CONSTEXPR void zero() { storage.zero(); }
 
-    AFA_DEVICE_CONSTEXPR typename MatStorage::value_t (&data(
+    AFA_DEVICE_CONSTEXPR typename MatStorage::storage_t (&data(
         const int stage = 0))[MatStorage::rows][MatStorage::cols]
     {
         return storage.data(stage);
