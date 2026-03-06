@@ -60,6 +60,7 @@ struct AFAForwardTileScheduler {
      * which corresponds to a (B_r/n_warps, d_head) chunk.
      */
     static constexpr int QO_rows_per_warp = FwdKernelCfg.B_r / FwdKernelCfg.n_warps;
+    // Br / 4 / 8 row fragments per warp
     static constexpr int QO_row_fragments_per_warp =
         QO_rows_per_warp / ROWS_PER_FRAGMENT;
 
@@ -78,7 +79,6 @@ struct AFAForwardTileScheduler {
     static constexpr int KV_row_fragments_per_warp =
                                 KV_tile_row_fragments / FwdKernelCfg.n_warps;
 
-    
     static constexpr int KV_rows_per_warp =
                                 FwdKernelCfg.B_c / FwdKernelCfg.n_warps;
 
@@ -151,7 +151,7 @@ struct AFAForwardKernelTraits {
     static constexpr MatrixLDSTConfig K_LDST = make_ldst_config(
         {TileScheduler::KV_row_fragments_per_warp, TileScheduler::d_head_fragments},
         /* K is transposed, so the col fragments are the first dimension */
-        {TileScheduler::K_col_fragments_per_warp_mma, TileScheduler::KV_row_fragments_per_warp},
+        {TileScheduler::KV_tile_row_fragments, TileScheduler::K_col_fragments_per_warp_mma},
         false /*transposed*/,FwdKernelCfg.B_c, TileScheduler::KV_rows_per_warp,
         true /*compute_over_entire_block*/,
         FwdKernelCfg.K_col_fragments_per_warp_mma == 0,
@@ -181,8 +181,8 @@ struct AFAForwardKernelTraits {
 
     // S/P is kept entirely in the RF during the entire duration of the kernel.
     static constexpr MatrixLDSTConfig S_LDST = make_ldst_config(
-        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::K_col_fragments_per_warp_mma},
-        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::K_col_fragments_per_warp_mma},
+        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::KV_tile_row_fragments},
+        {TileScheduler::QO_row_fragments_per_warp, TileScheduler::KV_tile_row_fragments},
         false, FwdKernelCfg.B_r, false,
         0 /* only stored in RF, not smem or gmem */,
         false /*compute_over_entire_block*/);
