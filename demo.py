@@ -39,7 +39,7 @@ class KernelConfig:
     n_warps: int = 4
     async_copy: bool = True
     eager_load_blocks: bool = True
-    swizzled: bool = True
+    swizzled: bool = False
     Q_mma_load_K_tiles: int = 2
     K_mma_load_K_tiles: int = 2
     V_mma_load_K_tiles: int = 0
@@ -82,6 +82,7 @@ def run_test():
     # 5. 调用自定义算子
     # 返回 std::make_tuple(TO, runtime)
     custom_out, runtime = fa.forward(cfg, q, k, v, o, True)
+    print(custom_out.shape)  # 应该是 [B, S, H, D]
 
     # 6. 计算验证值 (PyTorch 原生实现)
     # PyTorch 默认期望 [B, H, S, D]，所以需要先 transpose

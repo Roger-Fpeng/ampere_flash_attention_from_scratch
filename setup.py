@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from setuptools import find_packages, setup
@@ -12,7 +13,10 @@ include_dirs = [Path(setup_dir) / "include"]
 
 
 def get_nvcc_compile_args():
-    debug_mode = os.environ.get("FA_DEBUG", "false").lower() == "true"
+    # Check for --debug flag in command line arguments
+    debug_mode = "--debug" in sys.argv
+    if debug_mode:
+        sys.argv.remove("--debug")
     sub_dir = "debug" if debug_mode else "release"
     intermediate_dir = Path(setup_dir) / "build" / "nvcc_temp" / sub_dir
     intermediate_dir.mkdir(parents=True, exist_ok=True)
@@ -40,7 +44,7 @@ def get_nvcc_compile_args():
         "arch=compute_80,code=sm_80",
     ]
     if debug_mode:
-        args.extend(["-g", "-G", "-DFA_DEBUG", "-O0"])
+        args.extend(["-g", "-G", "-O0"])
     else:
         args.extend(["-O3"])
 
