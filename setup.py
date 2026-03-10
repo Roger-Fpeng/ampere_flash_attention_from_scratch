@@ -9,7 +9,7 @@ __version__ = "0.0.1"
 
 setup_dir = os.path.dirname(os.path.abspath(__file__))
 
-include_dirs = [Path(setup_dir) / "include"]
+include_dirs = [Path(setup_dir) / "csrc/include"]
 
 
 def get_nvcc_compile_args():
@@ -55,7 +55,7 @@ ext_modules = [
     CUDAExtension(
         name="afa_flash_attention_kernels",
         sources=[
-            "ampere_flash_attention.cu",
+            "csrc/ampere_flash_attention.cu",
         ],
         extra_compile_args={
             "cxx": ["-O3", "-fdiagnostics-color=always"],

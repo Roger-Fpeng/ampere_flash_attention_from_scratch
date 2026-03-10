@@ -28,8 +28,6 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     using VMatLDST = typename KernelTraits::VMatrixLDST;
     constexpr int async = KernelTraits::async_copy;
 
-    // We initialize a CTA for each sample, seq tile, and head.
-    // CTA 是三维， thread 是其中的单元，每 32 个为一个 warp，也指定一个单元为一个 3 维线程
     const int sample = blockIdx.z;
     const int head = blockIdx.y;
     const int q_seq_block = blockIdx.x;
@@ -45,7 +43,6 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     // We read the entire key sequence.
     const index_t KV_gmem_block_offset = sample_head_offset;
 
-    // batch 维度在 z，所以变化最慢
     value_t *gmem_Q = &static_cast<value_t *>(params.q_ptr)[QO_gmem_block_offset];
     value_t *gmem_O = &static_cast<value_t *>(params.o_ptr)[QO_gmem_block_offset];
     value_t *gmem_K = &static_cast<value_t *>(params.k_ptr)[KV_gmem_block_offset];
@@ -72,7 +69,6 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
     typename KernelTraits::OValueMatrixLDST O_b16(gmem_O, gmem_seq_stride, smem_O);
 
     // Start the async copy of the Q and K tiles.
-    // 这是按照一个 thread cluster 加载的，如何在 warp 内部进行协作的细节
     Q.copy_GM2SM();
     cp_async_commit<async>();
     if constexpr (KernelTraits::eager_load_blocks) {
@@ -111,7 +107,6 @@ afa_forward_kernel(__grid_constant__ const AFAForwardParams params) {
         Q.copy_SM2RF();
     }
 
-    // 每个 warp 都逐个 KV 计算，在 query 内部的 tile 并行计算
     for (int j = 0; j < params.n_KV_blocks; ++j) {
         if constexpr (!KernelTraits::eager_load_blocks) {
             K.copy_GM2SM();
