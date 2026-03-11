@@ -42,7 +42,7 @@ std::map<AFAForwardKernelConfig, forward_kernel_fn>
 def main(output_path):
     if output_path is None:
         output_path = (
-            Path(__file__).resolve().parent.parent / "include" / "afa_preset_kernels.cuh"
+            Path(__file__).resolve().parent.parent / "csrc" / "include" / "afa_preset_kernels.cuh"
         )
     else:
         output_path = Path(output_path)

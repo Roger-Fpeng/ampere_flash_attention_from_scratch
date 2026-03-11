@@ -39,7 +39,7 @@ class AFAForwardKernelConfig:
     n_warps: int = 4
     async_copy: bool = True
     eager_load_blocks: bool = True
-    swizzled: bool = False
+    swizzled: bool = True
     mma_double_buffer_loads: bool = False
     optimized_softmax: bool = False
 
