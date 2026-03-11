@@ -22,16 +22,16 @@ constexpr void static_assert_valid_kernel_config() {
 
 template <AFAForwardKernelConfig FwdKernelCfg>
 constexpr bool valid_kernel_config() {
-    static_assert_valid_kernel_config<FwdKernelCfg.Q_col_fragments_per_warp_mma, 
+    static_assert_valid_kernel_config<FwdKernelCfg.Q_col_fragments_per_warp_gemm, 
             FwdKernelCfg.d_head, FwdKernelCfg.mma_double_buffer_loads>();
-    static_assert_valid_kernel_config<FwdKernelCfg.K_col_fragments_per_warp_mma,
+    static_assert_valid_kernel_config<FwdKernelCfg.K_col_fragments_per_warp_gemm,
             FwdKernelCfg.d_head, FwdKernelCfg.mma_double_buffer_loads>();
-    static_assert_valid_kernel_config<FwdKernelCfg.V_col_fragments_per_warp_mma,
+    static_assert_valid_kernel_config<FwdKernelCfg.V_col_fragments_per_warp_gemm,
             FwdKernelCfg.B_c, FwdKernelCfg.mma_double_buffer_loads>();
 
-    static_assert((FwdKernelCfg.Q_col_fragments_per_warp_mma == 
-                FwdKernelCfg.K_col_fragments_per_warp_mma) ||
-                FwdKernelCfg.Q_col_fragments_per_warp_mma == 0);
+    static_assert((FwdKernelCfg.Q_col_fragments_per_warp_gemm == 
+                FwdKernelCfg.K_col_fragments_per_warp_gemm) ||
+                FwdKernelCfg.Q_col_fragments_per_warp_gemm == 0);
 
     return true;
 }
@@ -83,25 +83,25 @@ struct AFAForwardTileScheduler {
                                 FwdKernelCfg.B_c / FwdKernelCfg.n_warps;
 
     // col fragments to load in warp matmuls which execute mma.
-    static constexpr int Q_col_fragments_per_warp_mma =
-        FwdKernelCfg.Q_col_fragments_per_warp_mma == 0 ? d_head_fragments
-                                    : FwdKernelCfg.Q_col_fragments_per_warp_mma;
+    static constexpr int Q_col_fragments_per_warp_gemm =
+        FwdKernelCfg.Q_col_fragments_per_warp_gemm == 0 ? d_head_fragments
+                                    : FwdKernelCfg.Q_col_fragments_per_warp_gemm;
     static constexpr int Q_mma_load_stages =
-                (FwdKernelCfg.Q_col_fragments_per_warp_mma > 0 && 
+                (FwdKernelCfg.Q_col_fragments_per_warp_gemm > 0 && 
                     FwdKernelCfg.mma_double_buffer_loads) ? 2 : 1;
 
-    static constexpr int K_col_fragments_per_warp_mma =
-        FwdKernelCfg.K_col_fragments_per_warp_mma == 0 ? d_head_fragments
-                                    : FwdKernelCfg.K_col_fragments_per_warp_mma;
+    static constexpr int K_col_fragments_per_warp_gemm =
+        FwdKernelCfg.K_col_fragments_per_warp_gemm == 0 ? d_head_fragments
+                                    : FwdKernelCfg.K_col_fragments_per_warp_gemm;
     static constexpr int K_mma_load_stages =
-                (FwdKernelCfg.K_col_fragments_per_warp_mma > 0 && 
+                (FwdKernelCfg.K_col_fragments_per_warp_gemm > 0 && 
                     FwdKernelCfg.mma_double_buffer_loads) ? 2 : 1;
 
-    static constexpr int V_col_fragments_per_warp_mma =
-        FwdKernelCfg.V_col_fragments_per_warp_mma == 0 ? KV_tile_row_fragments
-                                        : FwdKernelCfg.V_col_fragments_per_warp_mma;
+    static constexpr int V_col_fragments_per_warp_gemm =
+        FwdKernelCfg.V_col_fragments_per_warp_gemm == 0 ? KV_tile_row_fragments
+                                        : FwdKernelCfg.V_col_fragments_per_warp_gemm;
     static constexpr int V_mma_load_stages =
-                (FwdKernelCfg.V_col_fragments_per_warp_mma > 0 &&
+                (FwdKernelCfg.V_col_fragments_per_warp_gemm > 0 &&
                     FwdKernelCfg.mma_double_buffer_loads) ? 2 : 1;
 };
 
@@ -141,30 +141,30 @@ struct AFAForwardKernelTraits {
 
     static constexpr MatrixLDSTConfig Q_LDST =
         make_ldst_config({TileScheduler::QO_row_fragments_per_warp, TileScheduler::d_head_fragments},
-                         {TileScheduler::QO_row_fragments_per_warp, TileScheduler::Q_col_fragments_per_warp_mma},
+                         {TileScheduler::QO_row_fragments_per_warp, TileScheduler::Q_col_fragments_per_warp_gemm},
                          false /*transposed*/, FwdKernelCfg.B_r, TileScheduler::QO_rows_per_warp,
                          false /*compute_over_entire_block*/,
-                         FwdKernelCfg.Q_col_fragments_per_warp_mma == 0,
+                         FwdKernelCfg.Q_col_fragments_per_warp_gemm == 0,
                          TileScheduler::Q_mma_load_stages);
     using QMatrixLDST = MatrixLDST<Q_LDST, value_t>;
 
     static constexpr MatrixLDSTConfig K_LDST = make_ldst_config(
         {TileScheduler::KV_row_fragments_per_warp, TileScheduler::d_head_fragments},
         /* K is transposed, so the col fragments are the first dimension */
-        {TileScheduler::KV_tile_row_fragments, TileScheduler::K_col_fragments_per_warp_mma},
+        {TileScheduler::KV_tile_row_fragments, TileScheduler::K_col_fragments_per_warp_gemm},
         false /*transposed*/,FwdKernelCfg.B_c, TileScheduler::KV_rows_per_warp,
         true /*compute_over_entire_block*/,
-        FwdKernelCfg.K_col_fragments_per_warp_mma == 0,
+        FwdKernelCfg.K_col_fragments_per_warp_gemm == 0,
         TileScheduler::K_mma_load_stages);
     using KMatrixLDST = MatrixLDST<K_LDST, value_t>;
 
     static constexpr MatrixLDSTConfig V_LDST = make_ldst_config(
         {TileScheduler::KV_row_fragments_per_warp,TileScheduler::d_head_fragments},
-        {TileScheduler::d_head_fragments, TileScheduler::V_col_fragments_per_warp_mma},
+        {TileScheduler::d_head_fragments, TileScheduler::V_col_fragments_per_warp_gemm},
         true /*transposed*/, FwdKernelCfg.B_c, 
         TileScheduler::KV_rows_per_warp,
         true /*compute_over_entire_block*/,
-        FwdKernelCfg.V_col_fragments_per_warp_mma == 0,
+        FwdKernelCfg.V_col_fragments_per_warp_gemm == 0,
         TileScheduler::V_mma_load_stages);
     using VMatrixLDST = MatrixLDST<V_LDST, value_t>;
     
@@ -190,12 +190,12 @@ struct AFAForwardKernelTraits {
 
     using S_QK_GEMM = GEMM<QMatrixLDST, KMatrixLDST, SAccumMatrixLDST,
                             TileScheduler::d_head_fragments,
-                            constexpr_min(TileScheduler::Q_col_fragments_per_warp_mma,
-                                         TileScheduler::K_col_fragments_per_warp_mma),
+                            constexpr_min(TileScheduler::Q_col_fragments_per_warp_gemm,
+                                         TileScheduler::K_col_fragments_per_warp_gemm),
                            value_t>;
     using O_PV_GEMM = GEMM<PValueMatrixLDST, VMatrixLDST, OAccumMatrixLDST,
                            TileScheduler::KV_tile_row_fragments,
-                           TileScheduler::V_col_fragments_per_warp_mma,
+                           TileScheduler::V_col_fragments_per_warp_gemm,
                            value_t>;
 };
 

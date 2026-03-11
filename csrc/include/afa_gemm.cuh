@@ -42,14 +42,14 @@ struct GEMM {
 /*
  * warp_fragment_mma_f32_accum: perform fragment-level mma and accumulate into f32 registers.
  * For example, when calculating QK^T, if Q and K are tiled:
- *   Q_tile fragments shape: [Q_row_fragments_per_warp_mma, Q_col_fragments_per_warp_mma]
- *   K_tile fragments shape: [K_row_fragments_per_warp_mma, K_col_fragments_per_warp_mma]
- * Here, K is transposed and Q_col_fragments_per_warp_mma = K_row_fragments_per_warp_mma
- * but Q_col_fragments_per_warp_mma may not be equal to d_head_fragments.
+ *   Q_tile fragments shape: [Q_row_fragments_per_warp_gemm, Q_col_fragments_per_warp_gemm]
+ *   K_tile fragments shape: [K_row_fragments_per_warp_gemm, K_col_fragments_per_warp_gemm]
+ * Here, K is transposed and Q_col_fragments_per_warp_gemm = K_row_fragments_per_warp_gemm
+ * but Q_col_fragments_per_warp_gemm may not be equal to d_head_fragments.
  */
 template <typename value_t, const int M_fragments, const int N_fragments,
-          const int A_col_fragments, /* A_col_fragments_per_warp_mma */
-          const int B_col_fragments, /* B_col_fragments_per_warp_mma */
+          const int A_col_fragments, /* A_col_fragments_per_warp_gemm */
+          const int B_col_fragments, /* B_col_fragments_per_warp_gemm */
           typename accum_t = float>
 AFA_DEVICE_CONSTEXPR void warp_fragment_mma_f32_accum(
     uint32_t (&regs_A)[M_fragments][A_col_fragments],

@@ -67,14 +67,14 @@ struct AFAForwardKernelConfig {
     const bool optimized_softmax;
 
     /*
-     * Number of col fragments each warp loads for one warp mma. For example:
-     * For d_head = 128, fragment shape is [8, 8] and Q_col_fragments_per_warp_mma = 8,
-     * warp will load 8 col fragments and execute mma on Q[:, 0:64] and Q[:, 64:128] 
-     * for the first and second warp mma respectively.
+     * Number of col fragments each warp loads for one warp gemm. For example:
+     * For d_head = 128, fragment shape is [8, 8] and Q_col_fragments_per_warp_gemm = 8,
+     * warp will load 8 col fragments and execute gemm on Q[:, 0:64] and Q[:, 64:128] 
+     * for the first and second warp gemm respectively.
     */
-    const int Q_col_fragments_per_warp_mma;
-    const int K_col_fragments_per_warp_mma;
-    const int V_col_fragments_per_warp_mma;
+    const int Q_col_fragments_per_warp_gemm;
+    const int K_col_fragments_per_warp_gemm;
+    const int V_col_fragments_per_warp_gemm;
 
     int smem_bytes(int elem_size = 2) const {
         return (B_r + B_c * 2) * d_head * elem_size;
@@ -111,14 +111,14 @@ struct AFAForwardKernelConfig {
         if (optimized_softmax != other.optimized_softmax) {
             return optimized_softmax < other.optimized_softmax;
         }
-        if (Q_col_fragments_per_warp_mma != other.Q_col_fragments_per_warp_mma) {
-            return Q_col_fragments_per_warp_mma < other.Q_col_fragments_per_warp_mma;
+        if (Q_col_fragments_per_warp_gemm != other.Q_col_fragments_per_warp_gemm) {
+            return Q_col_fragments_per_warp_gemm < other.Q_col_fragments_per_warp_gemm;
         }
-        if (K_col_fragments_per_warp_mma != other.K_col_fragments_per_warp_mma) {
-            return K_col_fragments_per_warp_mma < other.K_col_fragments_per_warp_mma;
+        if (K_col_fragments_per_warp_gemm != other.K_col_fragments_per_warp_gemm) {
+            return K_col_fragments_per_warp_gemm < other.K_col_fragments_per_warp_gemm;
         }
-        if (V_col_fragments_per_warp_mma != other.V_col_fragments_per_warp_mma) {
-            return V_col_fragments_per_warp_mma < other.V_col_fragments_per_warp_mma;
+        if (V_col_fragments_per_warp_gemm != other.V_col_fragments_per_warp_gemm) {
+            return V_col_fragments_per_warp_gemm < other.V_col_fragments_per_warp_gemm;
         }
         
         return false;

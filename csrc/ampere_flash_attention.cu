@@ -26,9 +26,10 @@ AFAForwardKernelConfig py_to_cpp_kernel_config(const py::object &py_cfg) {
         py::cast<bool>(py_cfg.attr("swizzled")),
         py::cast<bool>(py_cfg.attr("mma_double_buffer_loads")),
         py::cast<bool>(py_cfg.attr("optimized_softmax")),
-        py::cast<int>(py_cfg.attr("Q_mma_load_K_tiles")),
-        py::cast<int>(py_cfg.attr("K_mma_load_K_tiles")),
-        py::cast<int>(py_cfg.attr("V_mma_load_K_tiles"))};
+        py::cast<int>(py_cfg.attr("Q_col_fragments_per_warp_gemm")),
+        py::cast<int>(py_cfg.attr("K_col_fragments_per_warp_gemm")),
+        py::cast<int>(py_cfg.attr("V_col_fragments_per_warp_gemm")),
+    };
 }
 
 decltype(auto)
