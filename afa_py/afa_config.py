@@ -123,7 +123,6 @@ class AFAForwardKernelConfig:
         if len(base_values) != 5:
             raise ValueError(f"Expected 5 values in base part, got {len(base_values)}")
         
-        # 解析 dtype
         dtype_str = base_values[0]
         if dtype_str == "FP16":
             dtype = DType.FP16
@@ -243,10 +242,33 @@ def get_preset_kernel_configs():
         if is_valid_config(AFAForwardKernelConfig(*cfg))
     ]
 
-    
+
+def get_progressive_configs() -> list[AFAForwardKernelConfig]:
+    base = "(FP16, 128, 64, 32, 4)"
+    option_steps = [
+        "",  # base config without any optimizations
+        "async",
+        "async+eager",
+        "async+eager+swizzled",
+        "async+eager+swizzled+load_2_2_2_tiles",
+        "async+eager+swizzled+buffer+load_2_2_2_tiles",
+        "async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles",
+    ]
+    result = []
+    for opts in option_steps:
+        config_str = f"{base}: {opts}" if opts else f"{base}: "
+        try:
+            cfg = AFAForwardKernelConfig.from_string_config(config_str)
+        except ValueError:
+            continue
+        # if is_valid_config(cfg):
+        result.append(cfg)
+    return result
+
+
 
 # if __name__ == "__main__":
-#     configs = get_preset_kernel_configs()
+#     configs = get_progressive_configs()
 #     for cfg in configs:
 #         print(str(cfg))
 #         print(cfg.to_cpp_struct())
