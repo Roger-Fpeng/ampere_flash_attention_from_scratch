@@ -40,12 +40,12 @@ class AFAForwardKernelConfig:
     async_copy: bool = True
     eager_load_blocks: bool = True
     swizzled: bool = True
-    mma_double_buffer_loads: bool = False
-    optimized_softmax: bool = False
+    mma_double_buffer_loads: bool = True
+    optimized_softmax: bool = True
 
     Q_col_fragments_per_warp_gemm: int = 2
     K_col_fragments_per_warp_gemm: int = 2
-    V_col_fragments_per_warp_gemm: int = 0
+    V_col_fragments_per_warp_gemm: int = 2
 
     def to_torch_dtype(self):
         return self.dtype
@@ -214,8 +214,8 @@ def get_preset_kernel_configs():
     async_copy = [True]
     eager_load_blocks = [True]
     swizzleds = [True]
-    mma_double_buffer_loads = [False, True]
-    optimized_softmax = [False, True]
+    mma_double_buffer_loads = [True]
+    optimized_softmax = [True]
     Q_col_fragments_per_warp_gemm = [0, 2]
     K_col_fragments_per_warp_gemm = [0, 2]
     V_col_fragments_per_warp_gemm = [0, 2]
@@ -252,7 +252,7 @@ def get_progressive_configs() -> list[AFAForwardKernelConfig]:
         "async+eager+swizzled",
         "async+eager+swizzled+load_2_2_2_tiles",
         "async+eager+swizzled+buffer+load_2_2_2_tiles",
-        "async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles",
+        # "async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles", # already included in preset configs
     ]
     result = []
     for opts in option_steps:

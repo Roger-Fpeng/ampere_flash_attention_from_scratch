@@ -6,7 +6,7 @@ Usage:
     python afa_fwd_kernel_benchmarks_by_seqlen.py <config_string> <batch_size> <n_heads> <seq_len1> [seq_len2] [seq_len3] ...
 
 Example:
-    python afa_fwd_kernel_benchmarks_by_seqlen.py "(FP16, 128, 64, 32, 4): async+eager+swizzled+load_2_2_0_tiles" 16 16 512 1024 2048 4096
+    python afa_fwd_kernel_benchmarks_by_seqlen.py --config_string  "(FP16, 128, 64, 32, 4): async+eager+swizzled+load_2_2_2_tiles"  --batch_size 16  --n_heads 16    --seq_lens  512 1024 2048 4096 8192
 """
 
 import sys
@@ -30,37 +30,41 @@ def parse_args():
         epilog=__doc__
     )
     parser.add_argument(
-        "config_string",
+        "--config_string",
         type=str,
         help="Configuration string, e.g., '(FP16, 128, 64, 32, 4): async+eager+swizzled+load_2_2_0_tiles'"
     )
     parser.add_argument(
-        "batch_size",
+        "--batch_size",
         type=int,
+        default=16,
         help="Batch size"
     )
     parser.add_argument(
-        "n_heads",
-        type=int,
-        help="Number of attention heads"
-    )
-    parser.add_argument(
-        "seq_lens",
+        "--seq_lens",
         type=int,
         nargs="+",
         help="List of sequence lengths to benchmark"
     )
+    # n_heads
+    parser.add_argument(
+        "--n_heads",
+        type=int,
+        default=32,
+        help="Number of attention heads"
+    )
+
     parser.add_argument(
         "--warmup",
         type=int,
-        default=5,
-        help="Number of warmup iterations (default: 5)"
+        default=2,
+        help="Number of warmup iterations (default: 2)"
     )
     parser.add_argument(
         "--repeats",
         type=int,
-        default=30,
-        help="Number of benchmark iterations (default: 30)"
+        default=10,
+        help="Number of benchmark iterations (default: 10)"
     )
     parser.add_argument(
         "--seed",
@@ -77,7 +81,7 @@ def benchmark_kernel(
     batch_size: int,
     seq_len: int,
     n_heads: int,
-    warmup: int = 5,
+    warmup: int = 2,
     repeats: int = 30,
     seed: int = 42
 ) -> float:
@@ -154,10 +158,6 @@ def main():
     print(f"GPU: {torch.cuda.get_device_name(0)}")
     print(f"SM Version: {torch.cuda.get_device_capability()[0]}{torch.cuda.get_device_capability()[1]}")
     print(f"Warmup iterations: {args.warmup}")
-    print(f"Benchmark iterations: {args.repeats}")
-    print("=" * 80)
-    print(f"{'Seq Len':<10} {'Runtime (ms)':<15} {'Throughput (TFLOPS)':<20}")
-    print("-" * 80)
     
     # Benchmark each sequence length
     results = []
@@ -179,10 +179,8 @@ def main():
             tflops = flops / (runtime_ms * 1e-3) / 1e12
             
             results.append((seq_len, runtime_ms, tflops))
-            print(f"{seq_len:<10} {runtime_ms:<15.4f} {tflops:<20.2f}")
             
         except Exception as e:
-            print(f"{seq_len:<10} ERROR: {e}")
             results.append((seq_len, None, None))
     
     print("=" * 80)
@@ -191,7 +189,7 @@ def main():
     print("-" * 80)
     for seq_len, runtime_ms, tflops in results:
         if runtime_ms is not None:
-            print(f"{seq_len:<10} {runtime_ms:<15.4f} {tflops:<20.2f}")
+            print(f"{seq_len:<10} [{runtime_ms:0.2f}, {tflops:<0.2f}]")
         else:
             print(f"{seq_len:<10} {'FAILED':<15}")
 

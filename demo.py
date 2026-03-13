@@ -6,7 +6,6 @@ import math
 from afa_py.afa_config import AFAForwardKernelConfig
 
 def run_test():
-    # 尝试加载编译好的内核模块
     try:
         import afa_flash_attention_kernels as fa
     except ImportError:
@@ -49,7 +48,7 @@ def run_test():
     # 计算 Scale 系数 (1/sqrt(d))
     scale = 1.0 / math.sqrt(D)
     
-    # 使用 PyTorch 高效实现作为基准
+    # 使用 PyTorch 高效实现作为比较
     with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False):
         ref_out = torch.nn.functional.scaled_dot_product_attention(
             q_ref, k_ref, v_ref, attn_mask=None, dropout_p=0.0, is_causal=False, scale=scale
@@ -70,7 +69,7 @@ def run_test():
     if max_diff < 1e-2:
         print("✅ 验证通过 (FP16 允许合理误差范围)")
     else:
-        print("❌ 误差过大，请检查 Scaler 或 Softmax 实现")
+        print("❌ 误差过大，请检查 kernel 实现")
 
 if __name__ == "__main__":
     run_test()

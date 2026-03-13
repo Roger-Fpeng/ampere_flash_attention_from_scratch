@@ -4,7 +4,7 @@ import sys
 
 # Add parent directory to path to import afa_py
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from afa_py.afa_config import get_preset_kernel_configs, AFAForwardKernelConfig
+from afa_py.afa_config import get_preset_kernel_configs, get_progressive_configs, AFAForwardKernelConfig
 
 
 def to_map_entry(cfg: AFAForwardKernelConfig) -> str:
@@ -51,7 +51,8 @@ def main(output_path):
     preset_configs = get_preset_kernel_configs()
     # Note: get_preset_kernel_configs() already filters by is_valid_config()
     # If additional validation is needed, add it here
-    valid_configs = preset_configs
+    progressive_kernel_configs = get_progressive_configs()
+    valid_configs = preset_configs + progressive_kernel_configs
     
     if not valid_configs:
         raise ValueError("No valid kernel configuration is generated.")

@@ -11,46 +11,10 @@ typedef void (*forward_kernel_fn)(const AFAForwardParams);
 
 std::map<AFAForwardKernelConfig, forward_kernel_fn>
     forward_kernels = {
-        // (FP16, 128, 64, 32, 4): async+eager+swizzled+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 2, 2, 0}>>},
-        // (FP16, 128, 64, 32, 4): async+eager+swizzled+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 2, 2, 2}>>},
-        // (FP16, 128, 64, 32, 4): async+eager+swizzled+opt_softmax+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, true, 2, 2, 0}>>},
-        // (FP16, 128, 64, 32, 4): async+eager+swizzled+opt_softmax+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, true, 2, 2, 2}>>},
-        // (FP16, 128, 64, 32, 4): async+eager+swizzled+buffer+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, false, 2, 2, 0}>>},
-        // (FP16, 128, 64, 32, 4): async+eager+swizzled+buffer+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, false, 2, 2, 2}>>},
         // (FP16, 128, 64, 32, 4): async+eager+swizzled+buffer+opt_softmax+load_2_2_0_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, true, 2, 2, 0}>>},
         // (FP16, 128, 64, 32, 4): async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, true, 2, 2, 2}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+load_0_0_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 0, 0}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+load_0_0_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 0, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 0, 2}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+load_0_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 2, 0}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+load_0_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, false, 0, 2, 2}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+opt_softmax+load_0_0_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 0, 0}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+opt_softmax+load_0_0_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 0, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 0, 2}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+opt_softmax+load_0_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 2, 0}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+opt_softmax+load_0_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, false, true, 0, 2, 2}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+buffer+load_0_0_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 0, 0}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+buffer+load_0_0_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 0, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 0, 2}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+buffer+load_0_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 2, 0}>>},
-        // (FP16, 128, 64, 64, 4): async+eager+swizzled+buffer+load_0_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, false, 0, 2, 2}>>},
         // (FP16, 128, 64, 64, 4): async+eager+swizzled+buffer+opt_softmax+load_0_0_0_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, true, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, true, 0, 0, 0}>>},
         // (FP16, 128, 64, 64, 4): async+eager+swizzled+buffer+opt_softmax+load_0_0_2_tiles
@@ -59,70 +23,34 @@ std::map<AFAForwardKernelConfig, forward_kernel_fn>
         {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, true, 0, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, true, 0, 2, 0}>>},
         // (FP16, 128, 64, 64, 4): async+eager+swizzled+buffer+opt_softmax+load_0_2_2_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, true, 0, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 64, 4, true, true, true, true, true, 0, 2, 2}>>},
-        // (FP16, 128, 128, 32, 4): async+eager+swizzled+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 32, 4): async+eager+swizzled+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, false, 2, 2, 2}>>},
-        // (FP16, 128, 128, 32, 4): async+eager+swizzled+opt_softmax+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, true, 2, 2, 0}>>},
-        // (FP16, 128, 128, 32, 4): async+eager+swizzled+opt_softmax+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, false, true, 2, 2, 2}>>},
-        // (FP16, 128, 128, 32, 4): async+eager+swizzled+buffer+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 32, 4): async+eager+swizzled+buffer+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, false, 2, 2, 2}>>},
         // (FP16, 128, 128, 32, 4): async+eager+swizzled+buffer+opt_softmax+load_2_2_0_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, true, 2, 2, 0}>>},
         // (FP16, 128, 128, 32, 4): async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 4, true, true, true, true, true, 2, 2, 2}>>},
-        // (FP16, 128, 128, 32, 8): async+eager+swizzled+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 32, 8): async+eager+swizzled+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, false, 2, 2, 2}>>},
-        // (FP16, 128, 128, 32, 8): async+eager+swizzled+opt_softmax+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, true, 2, 2, 0}>>},
-        // (FP16, 128, 128, 32, 8): async+eager+swizzled+opt_softmax+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, false, true, 2, 2, 2}>>},
-        // (FP16, 128, 128, 32, 8): async+eager+swizzled+buffer+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 32, 8): async+eager+swizzled+buffer+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, false, 2, 2, 2}>>},
         // (FP16, 128, 128, 32, 8): async+eager+swizzled+buffer+opt_softmax+load_2_2_0_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, true, 2, 2, 0}>>},
         // (FP16, 128, 128, 32, 8): async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 32, 8, true, true, true, true, true, 2, 2, 2}>>},
-        // (FP16, 128, 128, 64, 4): async+eager+swizzled+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 64, 4): async+eager+swizzled+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, false, 2, 2, 2}>>},
-        // (FP16, 128, 128, 64, 4): async+eager+swizzled+opt_softmax+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, true, 2, 2, 0}>>},
-        // (FP16, 128, 128, 64, 4): async+eager+swizzled+opt_softmax+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, false, true, 2, 2, 2}>>},
-        // (FP16, 128, 128, 64, 4): async+eager+swizzled+buffer+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 64, 4): async+eager+swizzled+buffer+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, false, 2, 2, 2}>>},
         // (FP16, 128, 128, 64, 4): async+eager+swizzled+buffer+opt_softmax+load_2_2_0_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, true, 2, 2, 0}>>},
         // (FP16, 128, 128, 64, 4): async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 4, true, true, true, true, true, 2, 2, 2}>>},
-        // (FP16, 128, 128, 64, 8): async+eager+swizzled+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 64, 8): async+eager+swizzled+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, false, 2, 2, 2}>>},
-        // (FP16, 128, 128, 64, 8): async+eager+swizzled+opt_softmax+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, true, 2, 2, 0}>>},
-        // (FP16, 128, 128, 64, 8): async+eager+swizzled+opt_softmax+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, false, true, 2, 2, 2}>>},
-        // (FP16, 128, 128, 64, 8): async+eager+swizzled+buffer+load_2_2_0_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, false, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, false, 2, 2, 0}>>},
-        // (FP16, 128, 128, 64, 8): async+eager+swizzled+buffer+load_2_2_2_tiles
-        {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, false, 2, 2, 2}>>},
         // (FP16, 128, 128, 64, 8): async+eager+swizzled+buffer+opt_softmax+load_2_2_0_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, true, 2, 2, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, true, 2, 2, 0}>>},
         // (FP16, 128, 128, 64, 8): async+eager+swizzled+buffer+opt_softmax+load_2_2_2_tiles
         {AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, true, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 128, 64, 8, true, true, true, true, true, 2, 2, 2}>>},
+        // (FP16, 128, 64, 32, 4): load_0_0_0_tiles
+        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, false, false, false, false, false, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, false, false, false, false, false, 0, 0, 0}>>},
+        // (FP16, 128, 64, 32, 4): async+load_0_0_0_tiles
+        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, false, false, false, false, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, false, false, false, false, 0, 0, 0}>>},
+        // (FP16, 128, 64, 32, 4): async+eager+load_0_0_0_tiles
+        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, false, false, false, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, false, false, false, 0, 0, 0}>>},
+        // (FP16, 128, 64, 32, 4): async+eager+swizzled+load_0_0_0_tiles
+        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 0, 0, 0}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 0, 0, 0}>>},
+        // (FP16, 128, 64, 32, 4): async+eager+swizzled+load_2_2_2_tiles
+        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, false, false, 2, 2, 2}>>},
+        // (FP16, 128, 64, 32, 4): async+eager+swizzled+buffer+load_2_2_2_tiles
+        {AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, false, 2, 2, 2}, &afa_forward_kernel<AFAForwardKernelTraits<AFAForwardKernelConfig{torch::kFloat16, 128, 64, 32, 4, true, true, true, true, false, 2, 2, 2}>>},
     };
 
 } // namespace afa
