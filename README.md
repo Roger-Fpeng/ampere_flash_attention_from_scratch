@@ -58,5 +58,5 @@ Under this approximation, the measured TFLOPs can be slightly greater than the t
 # Implementation Explanation (Blog Post)
 1. [Flash attention mechanism](https://zhuanlan.zhihu.com/p/2011287950818840919)
 2. [GEMM and Tiling](https://zhuanlan.zhihu.com/p/2011926671276651005)
-3. Data movement (TODO)
+3. [Memory hierarchy & LD/ST](https://zhuanlan.zhihu.com/p/2016193686686430793)
 4. Online Softmax (TODO)
