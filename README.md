@@ -59,4 +59,6 @@ Under this approximation, the measured TFLOPs can be slightly greater than the t
 1. [Flash attention mechanism](https://zhuanlan.zhihu.com/p/2011287950818840919)
 2. [GEMM and Tiling](https://zhuanlan.zhihu.com/p/2011926671276651005)
 3. [Memory hierarchy & LD/ST](https://zhuanlan.zhihu.com/p/2016193686686430793)
-4. Online Softmax (TODO)
+4. Online Softmax 
+5. Bank Conflict
+6. Flash attention on Hopper and Blackwell
